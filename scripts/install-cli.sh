@@ -102,6 +102,52 @@ if [ ! -s "$TEMP_FILE" ]; then
     exit 1
 fi
 
+# Checksum verification (when available)
+if [ "$VERSION" = "latest" ] && [ -n "$GITHUB_TOKEN" ]; then
+    # Try to download checksums file
+    CHECKSUMS_URL="${DOWNLOAD_URL%.tar.gz}.sha256"
+    CHECKSUMS_URL="${CHECKSUMS_URL%_${OS}_${ARCH}${EXT}}_checksums.txt"
+    
+    echo "Attempting to download checksums from: $CHECKSUMS_URL"
+    
+    if curl -s -f -L -H "Authorization: token $GITHUB_TOKEN" "$CHECKSUMS_URL" > /tmp/checksums.txt 2>/dev/null; then
+        # Extract expected checksum for our file
+        EXPECTED_CHECKSUM=$(grep "${OS}_${ARCH}" /tmp/checksums.txt | cut -d' ' -f1)
+        
+        if [ -n "$EXPECTED_CHECKSUM" ]; then
+            # Calculate actual checksum
+            if command -v sha256sum >/dev/null 2>&1; then
+                ACTUAL_CHECKSUM=$(sha256sum "$TEMP_FILE" | cut -d' ' -f1)
+            elif command -v shasum >/dev/null 2>&1; then
+                ACTUAL_CHECKSUM=$(shasum -a 256 "$TEMP_FILE" | cut -d' ' -f1)
+            else
+                echo "⚠️  Warning: No SHA256 tool available for checksum verification"
+                ACTUAL_CHECKSUM=""
+            fi
+            
+            # Compare checksums
+            if [ -n "$ACTUAL_CHECKSUM" ]; then
+                if [ "$EXPECTED_CHECKSUM" = "$ACTUAL_CHECKSUM" ]; then
+                    echo "✅ Checksum verification passed"
+                else
+                    echo "❌ Checksum verification failed!"
+                    echo "   Expected: $EXPECTED_CHECKSUM"
+                    echo "   Actual:   $ACTUAL_CHECKSUM"
+                    rm -f "$TEMP_FILE"
+                    exit 1
+                fi
+            fi
+        else
+            echo "⚠️  Warning: No checksum found for ${OS}_${ARCH}"
+        fi
+        
+        rm -f /tmp/checksums.txt
+    else
+        echo "⚠️  Warning: Checksums file not available - skipping verification"
+        echo "   For production use, ensure checksums are published with releases"
+    fi
+fi
+
 # Move to installation directory
 mv "$TEMP_FILE" "$INSTALL_DIR/${BINARY_NAME}${EXT}"
 chmod +x "$INSTALL_DIR/${BINARY_NAME}${EXT}"
@@ -115,9 +161,26 @@ if command -v dotenv >/dev/null 2>&1; then
     dotenv version
 else
     echo "❌ Installation completed but 'dotenv' command not found"
-    echo "You may need to add $INSTALL_DIR to your PATH"
-    # For GitHub Actions, add to PATH
-    echo "$INSTALL_DIR" >> $GITHUB_PATH
+    echo ""
+    echo "Troubleshooting:"
+    echo "  - Installation directory: $INSTALL_DIR"
+    echo "  - Binary location: $INSTALL_DIR/${BINARY_NAME}${EXT}"
+    echo "  - Current PATH: $PATH"
+    echo ""
+    echo "For GitHub Actions, the directory has been added to GITHUB_PATH for future steps."
+    echo "For local testing, add this to your shell configuration:"
+    echo "  export PATH=\"$INSTALL_DIR:\$PATH\""
+    
+    # Check if the binary exists
+    if [ -f "$INSTALL_DIR/${BINARY_NAME}${EXT}" ]; then
+        echo ""
+        echo "Binary exists at expected location. This is likely a PATH issue."
+        ls -la "$INSTALL_DIR/${BINARY_NAME}${EXT}"
+    else
+        echo ""
+        echo "ERROR: Binary not found at expected location!"
+        exit 1
+    fi
 fi
 
 # For GitHub Actions, ensure it's in PATH for next steps

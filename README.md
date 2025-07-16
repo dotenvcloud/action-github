@@ -3,8 +3,8 @@
 <div align="center">
   <img src="https://dotenv.com/logo.svg" alt="DotEnv Logo" width="200">
   
-  [![GitHub release](https://img.shields.io/github/release/dotenv/dotenv-action.svg)](https://github.com/dotenv/dotenv-action/releases)
-  [![License](https://img.shields.io/github/license/dotenv/dotenv-action)](LICENSE)
+  [![GitHub release](https://img.shields.io/github/release/lostlink/dotenv-action-github.svg)](https://github.com/lostlink/dotenv-action-github/releases)
+  [![License](https://img.shields.io/github/license/lostlink/dotenv-action-github)](LICENSE)
   [![GitHub marketplace](https://img.shields.io/badge/marketplace-dotenv--action-blue?logo=github)](https://github.com/marketplace/actions/dotenv-secrets)
 </div>
 
@@ -18,7 +18,7 @@
 
 ```yaml
 - name: Pull secrets
-  uses: dotenv/dotenv-action@v1
+  uses: lostlink/dotenv-action-github@v1
   with:
     api-key: ${{ secrets.DOTENV_API_KEY }}
     project: myapp
@@ -53,7 +53,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Pull DotEnv secrets
-        uses: dotenv/dotenv-action@v1
+        uses: lostlink/dotenv-action-github@v1
         with:
           api-key: ${{ secrets.DOTENV_API_KEY }}
           project: myapp
@@ -72,7 +72,7 @@ jobs:
 Pull all secrets for a project:
 
 ```yaml
-- uses: dotenv/dotenv-action@v1
+- uses: lostlink/dotenv-action-github@v1
   with:
     api-key: ${{ secrets.DOTENV_API_KEY }}
     project: myapp
@@ -83,7 +83,7 @@ Pull all secrets for a project:
 Pull secrets for a specific target (e.g., production, staging):
 
 ```yaml
-- uses: dotenv/dotenv-action@v1
+- uses: lostlink/dotenv-action-github@v1
   with:
     api-key: ${{ secrets.DOTENV_API_KEY }}
     project: myapp
@@ -95,7 +95,7 @@ Pull secrets for a specific target (e.g., production, staging):
 Pull secrets for project/target/environment:
 
 ```yaml
-- uses: dotenv/dotenv-action@v1
+- uses: lostlink/dotenv-action-github@v1
   with:
     api-key: ${{ secrets.DOTENV_API_KEY }}
     project: myapp
@@ -108,7 +108,7 @@ Pull secrets for project/target/environment:
 Export secrets as GitHub environment variables for subsequent steps:
 
 ```yaml
-- uses: dotenv/dotenv-action@v1
+- uses: lostlink/dotenv-action-github@v1
   with:
     api-key: ${{ secrets.DOTENV_API_KEY }}
     project: myapp
@@ -126,7 +126,7 @@ Export secrets as GitHub environment variables for subsequent steps:
 Export in JSON format:
 
 ```yaml
-- uses: dotenv/dotenv-action@v1
+- uses: lostlink/dotenv-action-github@v1
   with:
     api-key: ${{ secrets.DOTENV_API_KEY }}
     project: myapp
@@ -141,7 +141,7 @@ Available formats: `env`, `json`, `yaml`, `shell`, `dockerfile`
 Write to a specific file:
 
 ```yaml
-- uses: dotenv/dotenv-action@v1
+- uses: lostlink/dotenv-action-github@v1
   with:
     api-key: ${{ secrets.DOTENV_API_KEY }}
     project: myapp
@@ -153,7 +153,7 @@ Write to a specific file:
 Resolve variable references:
 
 ```yaml
-- uses: dotenv/dotenv-action@v1
+- uses: lostlink/dotenv-action-github@v1
   with:
     api-key: ${{ secrets.DOTENV_API_KEY }}
     project: myapp
@@ -171,7 +171,7 @@ API_ENDPOINT=${BASE_URL}/v1
 Use a different organization:
 
 ```yaml
-- uses: dotenv/dotenv-action@v1
+- uses: lostlink/dotenv-action-github@v1
   with:
     api-key: ${{ secrets.DOTENV_API_KEY }}
     project: myapp
@@ -183,7 +183,7 @@ Use a different organization:
 For enterprise or testing:
 
 ```yaml
-- uses: dotenv/dotenv-action@v1
+- uses: lostlink/dotenv-action-github@v1
   with:
     api-key: ${{ secrets.DOTENV_API_KEY }}
     project: myapp
@@ -195,7 +195,7 @@ For enterprise or testing:
 Use a specific version of the DotEnv CLI:
 
 ```yaml
-- uses: dotenv/dotenv-action@v1
+- uses: lostlink/dotenv-action-github@v1
   with:
     api-key: ${{ secrets.DOTENV_API_KEY }}
     project: myapp
@@ -249,7 +249,7 @@ jobs:
           node-version: '20'
       
       - name: Pull secrets
-        uses: dotenv/dotenv-action@v1
+        uses: lostlink/dotenv-action-github@v1
         with:
           api-key: ${{ secrets.DOTENV_API_KEY }}
           project: myapp
@@ -282,7 +282,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Pull secrets for Docker
-        uses: dotenv/dotenv-action@v1
+        uses: lostlink/dotenv-action-github@v1
         with:
           api-key: ${{ secrets.DOTENV_API_KEY }}
           project: myapp
@@ -319,7 +319,7 @@ jobs:
           fi
       
       - name: Pull environment-specific secrets
-        uses: dotenv/dotenv-action@v1
+        uses: lostlink/dotenv-action-github@v1
         with:
           api-key: ${{ secrets.DOTENV_API_KEY }}
           project: myapp
@@ -334,11 +334,42 @@ jobs:
 
 ## 🔒 Security Best Practices
 
+### API Key Management
 1. **Never commit your API key** - Always use GitHub Secrets
 2. **Use least privilege** - Create API keys with minimal required permissions
 3. **Rotate keys regularly** - Update your API keys periodically
-4. **Mask sensitive values** - The action automatically masks secret values in logs
-5. **Use specific targets** - Pull only the secrets you need for each environment
+4. **Use organization-specific keys** - Don't share API keys across organizations
+
+### Action Security
+1. **Pin to specific versions** - Use `@v1.0.0` instead of `@v1` for production
+2. **Review action code** - This action is open source, review the code before use
+3. **Limit workflow permissions** - Use minimal GitHub token permissions:
+   ```yaml
+   permissions:
+     contents: read  # Only if needed
+   ```
+
+### Secret Protection
+1. **Automatic masking** - The action masks your API key and secret values in logs
+2. **Use specific targets** - Pull only the secrets you need for each environment
+3. **Avoid debug mode** - Don't enable debug logging in production workflows
+4. **Clean up files** - Remove `.env` files after use in CI/CD:
+   ```yaml
+   - name: Clean up
+     if: always()
+     run: rm -f .env
+   ```
+
+### Input Validation
+The action validates all inputs to prevent injection attacks:
+- Project/target/environment names must contain only alphanumeric characters, dash, underscore, and dot
+- Maximum length of 100 characters per name
+- No path traversal patterns allowed
+
+### Network Security
+1. **HTTPS only** - All API communications use HTTPS
+2. **Checksum verification** - CLI downloads are verified when checksums are available
+3. **GitHub token for downloads** - Uses GitHub token to avoid rate limits
 
 ## 🧪 Testing Locally
 
@@ -382,6 +413,18 @@ Error: Failed to install DotEnv CLI
 
 **Solution**: Check your GitHub Actions runner has internet access. Try specifying a specific CLI version.
 
+### Windows Runners
+
+The action works on Windows runners, but uses bash shell for all operations. GitHub-hosted Windows runners include Git Bash. For self-hosted Windows runners, ensure Git Bash is installed.
+
+### Invalid Input Characters
+
+```
+Error: Project name contains invalid characters
+```
+
+**Solution**: Use only alphanumeric characters, dash, underscore, and dot in project/target/environment names.
+
 ## 📝 Advanced Configuration
 
 ### Using with Matrix Builds
@@ -393,7 +436,7 @@ strategy:
     region: [us-east-1, eu-west-1]
 
 steps:
-  - uses: dotenv/dotenv-action@v1
+  - uses: lostlink/dotenv-action-github@v1
     with:
       api-key: ${{ secrets.DOTENV_API_KEY }}
       project: myapp
@@ -406,7 +449,7 @@ steps:
 ```yaml
 - name: Pull secrets (if not PR)
   if: github.event_name != 'pull_request'
-  uses: dotenv/dotenv-action@v1
+  uses: lostlink/dotenv-action-github@v1
   with:
     api-key: ${{ secrets.DOTENV_API_KEY }}
     project: myapp
@@ -432,7 +475,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - 📧 Email: support@dotenv.com
 - 💬 Discord: [Join our community](https://discord.gg/dotenv)
-- 🐛 Issues: [GitHub Issues](https://github.com/dotenv/dotenv-action/issues)
+- 🐛 Issues: [GitHub Issues](https://github.com/lostlink/dotenv-action-github/issues)
 
 ---
 

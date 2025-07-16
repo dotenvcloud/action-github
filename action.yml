@@ -75,6 +75,9 @@ runs:
     - name: Configure CLI
       shell: bash
       run: |
+        # Mask the API key immediately
+        echo "::add-mask::${{ inputs.api-key }}"
+        
         # Set API key
         export DOTENV_API_KEY="${{ inputs.api-key }}"
         
@@ -87,7 +90,7 @@ runs:
           export DOTENV_API_URL="${{ inputs.api-url }}"
         fi
         
-        # Export for subsequent steps
+        # Export for subsequent steps (the value will be masked in logs)
         echo "DOTENV_API_KEY=$DOTENV_API_KEY" >> $GITHUB_ENV
         if [[ -n "$DOTENV_ORGANIZATION" ]]; then
           echo "DOTENV_ORGANIZATION=$DOTENV_ORGANIZATION" >> $GITHUB_ENV
@@ -95,6 +98,56 @@ runs:
         if [[ -n "$DOTENV_API_URL" ]]; then
           echo "DOTENV_API_URL=$DOTENV_API_URL" >> $GITHUB_ENV
         fi
+        
+        echo "✅ CLI configured successfully"
+
+    - name: Validate inputs
+      shell: bash
+      run: |
+        # Function to validate input names
+        validate_name() {
+          local name="$1"
+          local field="$2"
+          
+          # Check for empty name (allowed for optional fields)
+          if [[ -z "$name" ]]; then
+            return 0
+          fi
+          
+          # Check length (max 100 characters)
+          if [[ ${#name} -gt 100 ]]; then
+            echo "❌ Error: $field name is too long (max 100 characters)"
+            exit 1
+          fi
+          
+          # Check for valid characters (alphanumeric, dash, underscore, dot)
+          if ! [[ "$name" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+            echo "❌ Error: $field name contains invalid characters"
+            echo "   Allowed: letters, numbers, dash, underscore, dot"
+            echo "   Provided: $name"
+            exit 1
+          fi
+          
+          # Check for path traversal attempts
+          if [[ "$name" =~ \.\. ]] || [[ "$name" =~ ^/ ]] || [[ "$name" =~ /$ ]]; then
+            echo "❌ Error: $field name contains invalid path characters"
+            exit 1
+          fi
+        }
+        
+        # Validate each input
+        validate_name "${{ inputs.project }}" "Project"
+        validate_name "${{ inputs.target }}" "Target"
+        validate_name "${{ inputs.environment }}" "Environment"
+        
+        # Validate format
+        if ! [[ "${{ inputs.format }}" =~ ^(env|json|yaml|shell|dockerfile)$ ]]; then
+          echo "❌ Error: Invalid format '${{ inputs.format }}'"
+          echo "   Allowed: env, json, yaml, shell, dockerfile"
+          exit 1
+        fi
+        
+        echo "✅ Input validation passed"
 
     - name: Build path
       id: build-path
@@ -117,35 +170,38 @@ runs:
     - name: Pull secrets
       shell: bash
       run: |
-        # Build command arguments
-        cmd="dotenv pull '${{ steps.build-path.outputs.path }}'"
+        # Execute dotenv pull with safe argument handling
+        args=("pull" "${{ steps.build-path.outputs.path }}")
         
         # Add format flag
-        cmd="$cmd --format=${{ inputs.format }}"
+        args+=("--format=${{ inputs.format }}")
         
         # Add output file
-        cmd="$cmd --output='${{ inputs.output-file }}'"
+        args+=("--output=${{ inputs.output-file }}")
         
         # Add optional flags
         if [[ "${{ inputs.decrypt }}" == "false" ]]; then
-          cmd="$cmd --decrypt=false"
+          args+=("--decrypt=false")
         fi
         
         if [[ "${{ inputs.resolve }}" == "true" ]]; then
-          cmd="$cmd --resolve"
+          args+=("--resolve")
         fi
         
         if [[ "${{ inputs.quiet }}" == "true" ]]; then
-          cmd="$cmd --quiet"
+          args+=("--quiet")
         fi
         
         if [[ "${{ inputs.merge }}" == "false" ]]; then
-          cmd="$cmd --merge=false"
+          args+=("--merge=false")
         fi
         
-        # Execute the command
-        echo "Executing: $cmd"
-        eval $cmd
+        # Execute the command safely
+        echo "Executing: dotenv ${args[@]}"
+        if ! dotenv "${args[@]}"; then
+          echo "❌ Failed to pull secrets"
+          exit 1
+        fi
         
         # Check if file was created
         if [[ -f "${{ inputs.output-file }}" ]]; then
