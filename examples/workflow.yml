@@ -1,0 +1,135 @@
+name: Example DotEnv Workflow
+# This is an example workflow showing how to use the DotEnv GitHub Action
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Checkout your repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Pull secrets from DotEnv
+      - name: Pull production secrets
+        if: github.ref == 'refs/heads/main'
+        uses: dotenv/dotenv-action@v1
+        with:
+          api-key: ${{ secrets.DOTENV_API_KEY }}
+          project: myapp
+          target: production
+          environment: api
+          export-variables: true
+      
+      # Pull staging secrets for develop branch
+      - name: Pull staging secrets
+        if: github.ref == 'refs/heads/develop'
+        uses: dotenv/dotenv-action@v1
+        with:
+          api-key: ${{ secrets.DOTENV_API_KEY }}
+          project: myapp
+          target: staging
+          environment: api
+          export-variables: true
+      
+      # Setup Node.js (example for Node projects)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      # Install dependencies
+      - name: Install dependencies
+        run: npm ci
+      
+      # Run tests with environment variables
+      - name: Run tests
+        run: npm test
+        env:
+          # DotEnv secrets are now available as environment variables
+          NODE_ENV: test
+      
+      # Build application
+      - name: Build
+        run: npm run build
+        env:
+          # All DotEnv secrets are available here
+          NODE_ENV: production
+      
+      # Deploy (example)
+      - name: Deploy
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Deploying to production..."
+          # Your deployment script here
+          # All secrets from DotEnv are available as env vars
+
+  docker-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Pull secrets in Dockerfile format
+      - name: Pull Docker secrets
+        uses: dotenv/dotenv-action@v1
+        with:
+          api-key: ${{ secrets.DOTENV_API_KEY }}
+          project: myapp
+          target: production
+          format: dockerfile
+          output-file: .env.docker
+      
+      # Build Docker image with secrets
+      - name: Build Docker image
+        run: |
+          docker build \
+            --file Dockerfile \
+            --env-file .env.docker \
+            --tag myapp:${{ github.sha }} \
+            .
+      
+      # Push to registry (if needed)
+      - name: Push to registry
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          docker push myapp:${{ github.sha }}
+
+  multi-environment:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - environment: staging
+            url: https://staging.example.com
+          - environment: production
+            url: https://example.com
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Pull environment-specific secrets
+      - name: Pull ${{ matrix.environment }} secrets
+        uses: dotenv/dotenv-action@v1
+        with:
+          api-key: ${{ secrets.DOTENV_API_KEY }}
+          project: myapp
+          target: ${{ matrix.environment }}
+          export-variables: true
+      
+      # Deploy to environment
+      - name: Deploy to ${{ matrix.environment }}
+        run: |
+          echo "Deploying to ${{ matrix.url }}..."
+          # Your deployment script
+        environment:
+          name: ${{ matrix.environment }}
+          url: ${{ matrix.url }}
