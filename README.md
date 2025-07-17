@@ -27,7 +27,7 @@
 
 ## 📋 Prerequisites
 
-1. A DotEnv account ([sign up here](https://dotenv.com))
+1. A DotEnv account ([sign up here](https://dotenv.cloud))
 2. An API key (generate in your DotEnv dashboard)
 3. A project with secrets configured
 
