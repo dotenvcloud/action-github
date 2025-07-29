@@ -137,7 +137,7 @@ When adding new features, please include tests in `.github/workflows/test.yml`:
 
 ### Security Issues
 
-For security vulnerabilities, please email security@dotenv.com instead of using the issue tracker.
+For security vulnerabilities, please email security@dotenv.cloud instead of using the issue tracker.
 
 ### Bug Reports
 
@@ -177,7 +177,7 @@ Releases are managed by the maintainers:
 Feel free to:
 - Open an issue for questions
 - Join our [Discord community](https://discord.gg/dotenv)
-- Email support@dotenv.com
+- Email support@dotenv.cloud
 
 ## License
 

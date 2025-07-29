@@ -77,8 +77,8 @@ if [ "$VERSION" = "latest" ]; then
     
     if [ -z "$DOWNLOAD_URL" ]; then
         echo "Could not find download URL for $OS/$ARCH"
-        echo "Falling back to direct download from dotenv.com..."
-        DOWNLOAD_URL="https://dotenv.com/releases/cli/latest/dotenv_${OS}_${ARCH}${EXT}"
+        echo "Falling back to direct download from dotenv.cloud..."
+        DOWNLOAD_URL="https://dotenv.cloud/releases/cli/latest/dotenv_${OS}_${ARCH}${EXT}"
     fi
 else
     # Use specific version

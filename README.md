@@ -1,7 +1,7 @@
 # DotEnv GitHub Action
 
 <div align="center">
-  <img src="https://dotenv.com/logo.svg" alt="DotEnv Logo" width="200">
+  <img src="https://dotenv.cloud/logo.svg" alt="DotEnv Logo" width="200">
   
   [![GitHub release](https://img.shields.io/github/release/lostlink/dotenv-action-github.svg)](https://github.com/lostlink/dotenv-action-github/releases)
   [![License](https://img.shields.io/github/license/lostlink/dotenv-action-github)](LICENSE)
@@ -466,19 +466,19 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Links
 
-- [DotEnv Platform](https://dotenv.com)
+- [DotEnv Platform](https://dotenv.cloud)
 - [DotEnv CLI](https://github.com/dotenv/cli)
-- [Documentation](https://dotenv.com/docs)
-- [Support](https://dotenv.com/support)
+- [Documentation](https://dotenv.cloud/docs)
+- [Support](https://dotenv.cloud/support)
 
 ## 💬 Support
 
-- 📧 Email: support@dotenv.com
+- 📧 Email: support@dotenv.cloud
 - 💬 Discord: [Join our community](https://discord.gg/dotenv)
 - 🐛 Issues: [GitHub Issues](https://github.com/lostlink/dotenv-action-github/issues)
 
 ---
 
 <p align="center">
-  Made with ❤️ by the <a href="https://dotenv.com">DotEnv</a> team
+  Made with ❤️ by the <a href="https://dotenv.cloud">DotEnv</a> team
 </p>
