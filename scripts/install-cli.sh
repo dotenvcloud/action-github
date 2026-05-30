@@ -60,7 +60,7 @@ mkdir -p "$INSTALL_DIR"
 # Determine download URL
 if [ "$VERSION" = "latest" ]; then
     # Get latest release URL from GitHub API
-    RELEASE_URL="https://api.github.com/repos/dotenv/cli/releases/latest"
+    RELEASE_URL="https://api.github.com/repos/dotenvcloud/cli/releases/latest"
     
     # Use GitHub token if available for higher rate limits
     if [ -n "$GITHUB_TOKEN" ]; then
@@ -82,7 +82,7 @@ if [ "$VERSION" = "latest" ]; then
     fi
 else
     # Use specific version
-    DOWNLOAD_URL="https://github.com/dotenv/cli/releases/download/v${VERSION}/dotenv_${OS}_${ARCH}${EXT}"
+    DOWNLOAD_URL="https://github.com/dotenvcloud/cli/releases/download/v${VERSION}/dotenv_${OS}_${ARCH}${EXT}"
 fi
 
 echo "Downloading from: $DOWNLOAD_URL"

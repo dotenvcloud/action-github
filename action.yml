@@ -211,8 +211,13 @@ runs:
           exit 1
         fi
 
+    - name: Set env-file output
+      id: set-env-file
+      shell: bash
+      run: echo "path=${{ inputs.output-file }}" >> $GITHUB_OUTPUT
+
     - name: Export variables
-      if: inputs.export-variables == 'true' && inputs.format == 'env'
+      if: ${{ inputs.export-variables == 'true' && inputs.format == 'env' }}
       shell: bash
       run: |
         echo "Exporting variables to GitHub environment..."
@@ -250,4 +255,4 @@ runs:
 outputs:
   env-file:
     description: 'Path to the generated environment file'
-    value: ${{ inputs.output-file }}
+    value: ${{ steps.set-env-file.outputs.path }}
