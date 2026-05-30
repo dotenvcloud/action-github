@@ -19,7 +19,7 @@ jobs:
       # Pull secrets from DotEnv
       - name: Pull production secrets
         if: github.ref == 'refs/heads/main'
-        uses: dotenv/dotenv-action@v1
+        uses: dotenvcloud/action-github@v1
         with:
           api-key: ${{ secrets.DOTENV_API_KEY }}
           project: myapp
@@ -30,7 +30,7 @@ jobs:
       # Pull staging secrets for develop branch
       - name: Pull staging secrets
         if: github.ref == 'refs/heads/develop'
-        uses: dotenv/dotenv-action@v1
+        uses: dotenvcloud/action-github@v1
         with:
           api-key: ${{ secrets.DOTENV_API_KEY }}
           project: myapp
@@ -79,7 +79,7 @@ jobs:
       
       # Pull secrets in Dockerfile format
       - name: Pull Docker secrets
-        uses: dotenv/dotenv-action@v1
+        uses: dotenvcloud/action-github@v1
         with:
           api-key: ${{ secrets.DOTENV_API_KEY }}
           project: myapp
@@ -118,7 +118,7 @@ jobs:
       
       # Pull environment-specific secrets
       - name: Pull ${{ matrix.environment }} secrets
-        uses: dotenv/dotenv-action@v1
+        uses: dotenvcloud/action-github@v1
         with:
           api-key: ${{ secrets.DOTENV_API_KEY }}
           project: myapp

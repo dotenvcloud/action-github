@@ -56,7 +56,7 @@ echo "::add-mask::${{ inputs.api-key }}"
 ## Documentation Improvements
 
 1. **Security Best Practices Section**: Added comprehensive security guidance
-2. **Correct Repository References**: Fixed all references to use `lostlink/dotenv-action-github`
+2. **Correct Repository References**: Fixed all references to use `dotenvcloud/action-github`
 3. **Troubleshooting Section**: Added common issues and solutions
 4. **Windows Compatibility**: Added notes about bash requirement
 
