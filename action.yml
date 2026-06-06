@@ -57,7 +57,7 @@ inputs:
     required: false
     default: 'true'
   cli-version:
-    description: 'Specific CLI version to use'
+    description: 'CLI version to install: "latest" (default, newest stable release), "nightly" (rolling main HEAD), an exact version ("1.2.3"), or a partial version ("1" → newest 1.x.x, "1.2" → newest 1.2.x)'
     required: false
     default: 'latest'
 
@@ -70,6 +70,9 @@ runs:
         echo "Installing DotEnv CLI..."
         ${{ github.action_path }}/scripts/install-cli.sh "${{ inputs.cli-version }}"
       env:
+        # Scoped to the CONSUMER's repo, not dotenvcloud/cli. This only raises
+        # the API rate limit — the dotenvcloud/cli releases must stay PUBLIC for
+        # asset downloads to work (a private repo would 404 here).
         GITHUB_TOKEN: ${{ github.token }}
 
     - name: Configure CLI
