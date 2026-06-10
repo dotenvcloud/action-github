@@ -32,19 +32,24 @@ case "$ARCH" in
         ;;
 esac
 
-# Map OS names
+# Map OS names and pick the release archive format. GoReleaser publishes
+# dotenv-cli_<version>_<os>_<arch>.tar.gz for linux/darwin and .zip for windows
+# (there is no bare binary asset — the archive must be extracted).
 case "$OS" in
     linux)
         OS="linux"
         EXT=""
+        ARCHIVE_EXT="tar.gz"
         ;;
     darwin)
         OS="darwin"
         EXT=""
+        ARCHIVE_EXT="tar.gz"
         ;;
     mingw*|msys*|cygwin*)
         OS="windows"
         EXT=".exe"
+        ARCHIVE_EXT="zip"
         ;;
     *)
         echo "Unsupported OS: $OS"
@@ -59,40 +64,41 @@ mkdir -p "$INSTALL_DIR"
 
 # Determine download URL
 if [ "$VERSION" = "latest" ]; then
-    # Get latest release URL from GitHub API
+    # Get latest release archive URL from the GitHub API. The trailing quote in
+    # the grep keeps us on the .tar.gz/.zip archive and off the .apk/.deb/.rpm
+    # packages and the .sbom.json sidecar that share the os_arch substring.
     RELEASE_URL="https://api.github.com/repos/dotenvcloud/cli/releases/latest"
-    
+
     # Use GitHub token if available for higher rate limits
     if [ -n "$GITHUB_TOKEN" ]; then
         DOWNLOAD_URL=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$RELEASE_URL" | \
-            grep "browser_download_url.*${OS}_${ARCH}" | \
+            grep "browser_download_url.*_${OS}_${ARCH}\.${ARCHIVE_EXT}\"" | \
             cut -d '"' -f 4 | \
             head -n 1)
     else
         DOWNLOAD_URL=$(curl -s "$RELEASE_URL" | \
-            grep "browser_download_url.*${OS}_${ARCH}" | \
+            grep "browser_download_url.*_${OS}_${ARCH}\.${ARCHIVE_EXT}\"" | \
             cut -d '"' -f 4 | \
             head -n 1)
     fi
-    
+
     if [ -z "$DOWNLOAD_URL" ]; then
-        echo "Could not find download URL for $OS/$ARCH"
-        echo "Falling back to direct download from dotenv.cloud..."
-        DOWNLOAD_URL="https://dotenv.cloud/releases/cli/latest/dotenv_${OS}_${ARCH}${EXT}"
+        echo "Could not find a release archive for $OS/$ARCH"
+        exit 1
     fi
 else
     # Use specific version
-    DOWNLOAD_URL="https://github.com/dotenvcloud/cli/releases/download/v${VERSION}/dotenv_${OS}_${ARCH}${EXT}"
+    DOWNLOAD_URL="https://github.com/dotenvcloud/cli/releases/download/v${VERSION}/dotenv-cli_${VERSION}_${OS}_${ARCH}.${ARCHIVE_EXT}"
 fi
 
 echo "Downloading from: $DOWNLOAD_URL"
 
-# Download the binary
+# Download the archive
 TEMP_FILE=$(mktemp)
 if [ -n "$GITHUB_TOKEN" ]; then
-    curl -L -H "Authorization: token $GITHUB_TOKEN" -o "$TEMP_FILE" "$DOWNLOAD_URL"
+    curl -fL -H "Authorization: token $GITHUB_TOKEN" -o "$TEMP_FILE" "$DOWNLOAD_URL"
 else
-    curl -L -o "$TEMP_FILE" "$DOWNLOAD_URL"
+    curl -fL -o "$TEMP_FILE" "$DOWNLOAD_URL"
 fi
 
 # Verify download
@@ -105,15 +111,15 @@ fi
 # Checksum verification (when available)
 if [ "$VERSION" = "latest" ] && [ -n "$GITHUB_TOKEN" ]; then
     # Try to download checksums file
-    CHECKSUMS_URL="${DOWNLOAD_URL%.tar.gz}.sha256"
-    CHECKSUMS_URL="${CHECKSUMS_URL%_${OS}_${ARCH}${EXT}}_checksums.txt"
-    
+    CHECKSUMS_URL="${DOWNLOAD_URL%/*}/checksums.txt"
+
     echo "Attempting to download checksums from: $CHECKSUMS_URL"
-    
+
     if curl -s -f -L -H "Authorization: token $GITHUB_TOKEN" "$CHECKSUMS_URL" > /tmp/checksums.txt 2>/dev/null; then
-        # Extract expected checksum for our file
-        EXPECTED_CHECKSUM=$(grep "${OS}_${ARCH}" /tmp/checksums.txt | cut -d' ' -f1)
-        
+        # Extract expected checksum for our archive
+        ARCHIVE_FILE="${DOWNLOAD_URL##*/}"
+        EXPECTED_CHECKSUM=$(grep " ${ARCHIVE_FILE}\$" /tmp/checksums.txt | cut -d' ' -f1)
+
         if [ -n "$EXPECTED_CHECKSUM" ]; then
             # Calculate actual checksum
             if command -v sha256sum >/dev/null 2>&1; then
@@ -124,7 +130,7 @@ if [ "$VERSION" = "latest" ] && [ -n "$GITHUB_TOKEN" ]; then
                 echo "⚠️  Warning: No SHA256 tool available for checksum verification"
                 ACTUAL_CHECKSUM=""
             fi
-            
+
             # Compare checksums
             if [ -n "$ACTUAL_CHECKSUM" ]; then
                 if [ "$EXPECTED_CHECKSUM" = "$ACTUAL_CHECKSUM" ]; then
@@ -138,9 +144,9 @@ if [ "$VERSION" = "latest" ] && [ -n "$GITHUB_TOKEN" ]; then
                 fi
             fi
         else
-            echo "⚠️  Warning: No checksum found for ${OS}_${ARCH}"
+            echo "⚠️  Warning: No checksum found for ${ARCHIVE_FILE}"
         fi
-        
+
         rm -f /tmp/checksums.txt
     else
         echo "⚠️  Warning: Checksums file not available - skipping verification"
@@ -148,8 +154,23 @@ if [ "$VERSION" = "latest" ] && [ -n "$GITHUB_TOKEN" ]; then
     fi
 fi
 
-# Move to installation directory
-mv "$TEMP_FILE" "$INSTALL_DIR/${BINARY_NAME}${EXT}"
+# Extract the binary from the archive into the install directory
+EXTRACT_DIR=$(mktemp -d)
+trap 'rm -rf "$EXTRACT_DIR" "$TEMP_FILE"' EXIT
+
+if [ "$ARCHIVE_EXT" = "zip" ]; then
+    unzip -q "$TEMP_FILE" -d "$EXTRACT_DIR"
+else
+    tar -xzf "$TEMP_FILE" -C "$EXTRACT_DIR"
+fi
+
+BIN_SRC=$(find "$EXTRACT_DIR" -type f -name "${BINARY_NAME}${EXT}" | head -n 1)
+if [ -z "$BIN_SRC" ]; then
+    echo "❌ '${BINARY_NAME}${EXT}' not found in downloaded archive"
+    exit 1
+fi
+
+mv "$BIN_SRC" "$INSTALL_DIR/${BINARY_NAME}${EXT}"
 chmod +x "$INSTALL_DIR/${BINARY_NAME}${EXT}"
 
 # Add to PATH for current session
@@ -170,7 +191,7 @@ else
     echo "For GitHub Actions, the directory has been added to GITHUB_PATH for future steps."
     echo "For local testing, add this to your shell configuration:"
     echo "  export PATH=\"$INSTALL_DIR:\$PATH\""
-    
+
     # Check if the binary exists
     if [ -f "$INSTALL_DIR/${BINARY_NAME}${EXT}" ]; then
         echo ""
