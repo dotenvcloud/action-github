@@ -300,19 +300,26 @@ jobs:
   integration-test:
     name: Integration Test
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && secrets.DOTENV_TEST_API_KEY != ''
+    # `secrets` is not a valid context in a job-level `if`, so gate on the
+    # event here and skip the secret-dependent steps below when the key is
+    # absent (e.g. on forks).
+    if: github.event_name == 'workflow_dispatch'
+    env:
+      DOTENV_TEST_API_KEY: ${{ secrets.DOTENV_TEST_API_KEY }}
     steps:
       - uses: actions/checkout@v5
-      
+
       - name: Real integration test
+        if: env.DOTENV_TEST_API_KEY != ''
         uses: ./
         with:
           api-key: ${{ secrets.DOTENV_TEST_API_KEY }}
           project: ${{ secrets.DOTENV_TEST_PROJECT }}
           target: staging
           export-variables: true
-      
+
       - name: Verify real secrets
+        if: env.DOTENV_TEST_API_KEY != ''
         run: |
           # Check if any variables were exported
           env | grep -E '^[A-Z_]+=' | head -5
