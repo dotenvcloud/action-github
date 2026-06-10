@@ -20,7 +20,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Test install script
         shell: bash
@@ -37,7 +37,7 @@ jobs:
     name: Test Action with Mock CLI
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Create mock CLI
         run: |
@@ -189,7 +189,7 @@ jobs:
     name: Test Input Validation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Test with invalid project name
         id: invalid-project
@@ -248,7 +248,7 @@ jobs:
         target: [staging, production]
         format: [env, json, yaml]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Create mock CLI for matrix test
         run: |
@@ -302,7 +302,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && secrets.DOTENV_TEST_API_KEY != ''
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Real integration test
         uses: ./
@@ -324,7 +324,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: [test-install, test-action-mock, test-input-validation, test-matrix]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Check if release needed
         run: |
