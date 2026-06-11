@@ -196,17 +196,46 @@ For enterprise or testing:
     api-url: https://dotenv.enterprise.com
 ```
 
-### Specific CLI Version
+### CLI Version (latest / nightly / pinned)
 
-Use a specific version of the DotEnv CLI:
+`cli-version` selects which CLI build the action installs. It defaults to `latest`
+(the newest stable release). Use `nightly` to track the rolling `main` HEAD —
+handy for testing unreleased CLI changes without bumping the action — or pin an
+exact version for reproducible builds:
 
 ```yaml
+# Default — newest stable release (cli-version omitted == 'latest')
+- uses: dotenvcloud/action-github@v1
+  with:
+    api-key: ${{ secrets.DOTENV_API_KEY }}
+    project: myapp
+
+# Nightly — rolling main HEAD, to test unreleased CLI changes
+- uses: dotenvcloud/action-github@v1
+  with:
+    api-key: ${{ secrets.DOTENV_API_KEY }}
+    project: myapp
+    cli-version: nightly
+
+# Pinned — an exact release for reproducible builds
 - uses: dotenvcloud/action-github@v1
   with:
     api-key: ${{ secrets.DOTENV_API_KEY }}
     project: myapp
     cli-version: '1.2.3'
+
+# Partial — newest release within a major/minor line
+- uses: dotenvcloud/action-github@v1
+  with:
+    api-key: ${{ secrets.DOTENV_API_KEY }}
+    project: myapp
+    cli-version: '1'      # newest 1.x.x  (also accepts e.g. '1.2' → newest 1.2.x)
 ```
+
+`cli-version` accepts `latest`, `nightly`, an exact version (`1.2.3`), or a
+partial version (`1` resolves to the newest stable `1.x.x`, `1.2` to the newest
+stable `1.2.x`). Partial matching ignores pre-releases and compares versions
+numerically (so `1.10.0` outranks `1.9.0`).
 
 ## 🔑 Inputs
 
@@ -225,7 +254,7 @@ Use a specific version of the DotEnv CLI:
 | `resolve` | Resolve variable interpolation | ❌ | `false` |
 | `quiet` | Suppress output | ❌ | `false` |
 | `merge` | Merge secrets from all hierarchy levels | ❌ | `true` |
-| `cli-version` | Specific CLI version to use | ❌ | `latest` |
+| `cli-version` | CLI build to install: `latest`, `nightly`, exact (`1.2.3`), or partial (`1` → newest `1.x.x`, `1.2` → newest `1.2.x`) | ❌ | `latest` |
 
 ## 📤 Outputs
 
