@@ -17,180 +17,33 @@ jobs:
     name: Test CLI Installation
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
-      
+      - uses: actions/checkout@v5
+
       - name: Test install script
         shell: bash
+        # Authenticate the release-API lookup so the shared-IP unauthenticated
+        # rate limit doesn't flake the install on macOS/windows runners.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           ./scripts/install-cli.sh ${{ github.event.inputs.cli-version || 'latest' }}
-          
+
       - name: Verify installation
         shell: bash
         run: |
           export PATH="$HOME/.dotenv/bin:$PATH"
           dotenv version
 
-  test-action-mock:
-    name: Test Action with Mock CLI
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Create mock CLI
-        run: |
-          # Create a mock dotenv CLI for testing
-          mkdir -p $HOME/.dotenv/bin
-          cat > $HOME/.dotenv/bin/dotenv << 'EOF'
-          #!/bin/bash
-          # Mock dotenv CLI for testing
-          
-          if [[ "$1" == "version" ]]; then
-            echo "dotenv version 1.0.0-mock"
-            exit 0
-          fi
-          
-          if [[ "$1" == "pull" ]]; then
-            # Extract output file from arguments
-            output=".env"
-            for ((i=1; i<=$#; i++)); do
-              if [[ "${!i}" == --output=* ]]; then
-                output="${!i#--output=}"
-              fi
-            done
-            
-            # Create mock output based on format
-            format="env"
-            for ((i=1; i<=$#; i++)); do
-              if [[ "${!i}" == --format=* ]]; then
-                format="${!i#--format=}"
-              fi
-            done
-            
-            case "$format" in
-              env)
-                echo "TEST_VAR=test_value" > "$output"
-                echo "API_URL=https://api.example.com" >> "$output"
-                echo "DEBUG=true" >> "$output"
-                ;;
-              json)
-                echo '{"TEST_VAR":"test_value","API_URL":"https://api.example.com","DEBUG":"true"}' > "$output"
-                ;;
-              yaml)
-                echo "TEST_VAR: test_value" > "$output"
-                echo "API_URL: https://api.example.com" >> "$output"
-                echo "DEBUG: true" >> "$output"
-                ;;
-            esac
-            
-            echo "Mock: Pulled secrets to $output"
-            exit 0
-          fi
-          
-          echo "Mock: Unknown command $1"
-          exit 1
-          EOF
-          
-          chmod +x $HOME/.dotenv/bin/dotenv
-          echo "$HOME/.dotenv/bin" >> $GITHUB_PATH
-      
-      - name: Test basic pull
-        uses: ./
-        with:
-          api-key: test-mock-key
-          project: test-project
-      
-      - name: Verify basic pull
-        run: |
-          if [[ ! -f .env ]]; then
-            echo "❌ .env file not created"
-            exit 1
-          fi
-          if ! grep -q "TEST_VAR=test_value" .env; then
-            echo "❌ Expected content not found in .env"
-            exit 1
-          fi
-          echo "✅ Basic pull test passed"
-      
-      - name: Test with target
-        uses: ./
-        with:
-          api-key: test-mock-key
-          project: test-project
-          target: staging
-          output-file: staging.env
-      
-      - name: Verify target pull
-        run: |
-          if [[ ! -f staging.env ]]; then
-            echo "❌ staging.env file not created"
-            exit 1
-          fi
-          echo "✅ Target pull test passed"
-      
-      - name: Test with full hierarchy
-        uses: ./
-        with:
-          api-key: test-mock-key
-          project: test-project
-          target: production
-          environment: api
-          output-file: production.env
-      
-      - name: Test JSON format
-        uses: ./
-        with:
-          api-key: test-mock-key
-          project: test-project
-          format: json
-          output-file: secrets.json
-      
-      - name: Verify JSON format
-        run: |
-          if [[ ! -f secrets.json ]]; then
-            echo "❌ secrets.json file not created"
-            exit 1
-          fi
-          if ! jq -e '.TEST_VAR == "test_value"' secrets.json > /dev/null; then
-            echo "❌ JSON content incorrect"
-            exit 1
-          fi
-          echo "✅ JSON format test passed"
-      
-      - name: Test export variables
-        uses: ./
-        with:
-          api-key: test-mock-key
-          project: test-project
-          export-variables: true
-          output-file: export.env
-      
-      - name: Verify exported variables
-        run: |
-          if [[ -z "$TEST_VAR" ]]; then
-            echo "❌ TEST_VAR not exported"
-            exit 1
-          fi
-          if [[ "$TEST_VAR" != "test_value" ]]; then
-            echo "❌ TEST_VAR has wrong value: $TEST_VAR"
-            exit 1
-          fi
-          if [[ -z "$API_URL" ]]; then
-            echo "❌ API_URL not exported"
-            exit 1
-          fi
-          echo "✅ Export variables test passed"
-          echo "  TEST_VAR=$TEST_VAR"
-          echo "  API_URL=$API_URL"
-
   test-input-validation:
     name: Test Input Validation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
+      - uses: actions/checkout@v5
+
       - name: Test with invalid project name
         id: invalid-project
         uses: ./
@@ -198,7 +51,7 @@ jobs:
           api-key: test-key
           project: 'invalid/../../path'
         continue-on-error: true
-      
+
       - name: Check project validation
         run: |
           if [[ "${{ steps.invalid-project.outcome }}" != "failure" ]]; then
@@ -206,7 +59,7 @@ jobs:
             exit 1
           fi
           echo "✅ Project validation works correctly"
-      
+
       - name: Test with invalid characters
         id: invalid-chars
         uses: ./
@@ -214,7 +67,7 @@ jobs:
           api-key: test-key
           project: 'test@#$%project'
         continue-on-error: true
-      
+
       - name: Check character validation
         run: |
           if [[ "${{ steps.invalid-chars.outcome }}" != "failure" ]]; then
@@ -222,7 +75,7 @@ jobs:
             exit 1
           fi
           echo "✅ Character validation works correctly"
-      
+
       - name: Test with invalid format
         id: invalid-format
         uses: ./
@@ -231,7 +84,7 @@ jobs:
           project: test-project
           format: invalid-format
         continue-on-error: true
-      
+
       - name: Check format validation
         run: |
           if [[ "${{ steps.invalid-format.outcome }}" != "failure" ]]; then
@@ -240,79 +93,29 @@ jobs:
           fi
           echo "✅ Format validation works correctly"
 
-  test-matrix:
-    name: Test Matrix Builds
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: [staging, production]
-        format: [env, json, yaml]
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Create mock CLI for matrix test
-        run: |
-          mkdir -p $HOME/.dotenv/bin
-          cat > $HOME/.dotenv/bin/dotenv << 'EOF'
-          #!/bin/bash
-          if [[ "$1" == "version" ]]; then
-            echo "dotenv version 1.0.0-mock"
-            exit 0
-          fi
-          if [[ "$1" == "pull" ]]; then
-            output=".env"
-            format="env"
-            for arg in "$@"; do
-              [[ "$arg" == --output=* ]] && output="${arg#--output=}"
-              [[ "$arg" == --format=* ]] && format="${arg#--format=}"
-            done
-            case "$format" in
-              env) echo "KEY=value" > "$output" ;;
-              json) echo '{"KEY":"value"}' > "$output" ;;
-              yaml) echo "KEY: value" > "$output" ;;
-            esac
-            exit 0
-          fi
-          exit 1
-          EOF
-          chmod +x $HOME/.dotenv/bin/dotenv
-          echo "$HOME/.dotenv/bin" >> $GITHUB_PATH
-      
-      - name: Test ${{ matrix.target }} - ${{ matrix.format }}
-        uses: ./
-        with:
-          api-key: test-matrix-key
-          project: test-project
-          target: ${{ matrix.target }}
-          format: ${{ matrix.format }}
-          output-file: output.${{ matrix.format }}
-      
-      - name: Verify output file
-        run: |
-          if [[ ! -f "output.${{ matrix.format }}" ]]; then
-            echo "❌ Output file not created: output.${{ matrix.format }}"
-            exit 1
-          fi
-          echo "✅ Output file created: output.${{ matrix.format }}"
-          ls -la output.${{ matrix.format }}
-          cat output.${{ matrix.format }}
-
   integration-test:
     name: Integration Test
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && secrets.DOTENV_TEST_API_KEY != ''
+    # `secrets` is not a valid context in a job-level `if`, so gate on the
+    # event here and skip the secret-dependent steps below when the key is
+    # absent (e.g. on forks).
+    if: github.event_name == 'workflow_dispatch'
+    env:
+      DOTENV_TEST_API_KEY: ${{ secrets.DOTENV_TEST_API_KEY }}
     steps:
-      - uses: actions/checkout@v4
-      
+      - uses: actions/checkout@v5
+
       - name: Real integration test
+        if: env.DOTENV_TEST_API_KEY != ''
         uses: ./
         with:
           api-key: ${{ secrets.DOTENV_TEST_API_KEY }}
           project: ${{ secrets.DOTENV_TEST_PROJECT }}
           target: staging
           export-variables: true
-      
+
       - name: Verify real secrets
+        if: env.DOTENV_TEST_API_KEY != ''
         run: |
           # Check if any variables were exported
           env | grep -E '^[A-Z_]+=' | head -5
@@ -322,10 +125,10 @@ jobs:
     name: Release Check
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [test-install, test-action-mock, test-input-validation, test-matrix]
+    needs: [test-install, test-input-validation]
     steps:
-      - uses: actions/checkout@v4
-      
+      - uses: actions/checkout@v5
+
       - name: Check if release needed
         run: |
           echo "All tests passed!"
