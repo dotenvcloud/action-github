@@ -14,6 +14,12 @@
 
 ---
 
+> **Not using GitHub Actions?** For container-native CI (GitLab CI, Jenkins,
+> Tekton, Argo, …) use the `dotenvcloud/cli` Docker image directly — see the
+> [CLI Docker guide](https://github.com/dotenvcloud/cli/blob/main/docs/examples/docker.md).
+> This action installs the CLI **binary**, so it runs on Linux, macOS, and
+> Windows runners alike.
+
 ## 🚀 Quick Start
 
 ```yaml
