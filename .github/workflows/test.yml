@@ -17,6 +17,7 @@ jobs:
     name: Test CLI Installation
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
@@ -24,6 +25,10 @@ jobs:
 
       - name: Test install script
         shell: bash
+        # Authenticate the release-API lookup so the shared-IP unauthenticated
+        # rate limit doesn't flake the install on macOS/windows runners.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           ./scripts/install-cli.sh ${{ github.event.inputs.cli-version || 'latest' }}
 
